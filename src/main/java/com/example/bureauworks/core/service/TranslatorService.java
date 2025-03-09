@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.bureauworks.core.entity.Translator;
+import com.example.bureauworks.core.exception.EntityNotFoundException;
 import com.example.bureauworks.core.exception.ExceptionUtil;
 import com.example.bureauworks.core.repository.TranslatorRepository;
 
@@ -22,9 +23,14 @@ public class TranslatorService {
         return ExceptionUtil.requireEntity(findByIdQuietly(id), "Translator not found");
     }
 
-    public Translator findByIdQuietly(Integer id) {
+    private Translator findByIdQuietly(Integer id) {
         ExceptionUtil.requireField(id, "Id of translator cannot be null");
         return repository.findById(id).orElse(null);
+    }
+
+    public Translator findByName(final String author) {
+        return repository.findByName(author)
+                .orElseThrow(() -> new EntityNotFoundException("Translator not found"));
     }
 
     public Page<Translator> findAll(final Pageable pageable, final String name, final String email) {
@@ -56,7 +62,7 @@ public class TranslatorService {
         repository.deleteById(id);
     }
         
-    public void validateRequiredFields(Translator translator) {
+    private void validateRequiredFields(Translator translator) {
         ExceptionUtil.requireField(translator.getName(), "Name of translator must be informed");
         ExceptionUtil.requireField(translator.getEmail(), "Email of translator must be informed");
         ExceptionUtil.requireField(translator.getTargetLanguage(), "Source language of translator must be informed");

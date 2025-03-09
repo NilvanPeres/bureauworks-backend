@@ -16,6 +16,7 @@ import lombok.*;
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @Table(name = "translator")
+@SQLRestriction(value = "deleted = false")
 @SQLDelete(sql = "UPDATE Translator SET deleted = true WHERE id = ?")
 public class Translator extends BaseEntity<Integer> {
 

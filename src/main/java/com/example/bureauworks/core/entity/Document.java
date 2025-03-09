@@ -34,6 +34,7 @@ public class Document extends BaseEntity <Integer> {
     private String content;
 
     @Schema(description = "In which language the document is written.")
+    @Enumerated(EnumType.STRING)
     private LangCountryEnum locale;
 
     @ManyToOne
