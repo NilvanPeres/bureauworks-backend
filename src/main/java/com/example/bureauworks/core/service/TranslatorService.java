@@ -33,6 +33,11 @@ public class TranslatorService {
                 .orElseThrow(() -> new EntityNotFoundException("Translator not found"));
     }
 
+    public Translator findByEmail(String author) {
+        return repository.findByEmail(author)
+                .orElseThrow(() -> new EntityNotFoundException("Translator not found"));
+    }
+
     public Page<Translator> findAll(final Pageable pageable, final String name, final String email) {
         return repository.findAll(pageable, name , email);
     }
@@ -70,6 +75,5 @@ public class TranslatorService {
         if (!isValidEmail(translator.getEmail())) {
             ExceptionUtil.exception("Invalid email");
         }
-    }
-    
+    }    
 }

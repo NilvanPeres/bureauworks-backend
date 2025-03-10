@@ -22,5 +22,8 @@ public interface TranslatorRepository extends JpaRepository<Translator, Integer>
 
     @Query("SELECT t FROM Translator t where (:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%')))")
     Optional<Translator> findByName(String name);
+
+    @Query("SELECT t FROM Translator t where (:email IS NULL OR LOWER(t.email) LIKE LOWER(CONCAT('%', :email, '%')))")
+    Optional<Translator> findByEmail(String email);
     
 }

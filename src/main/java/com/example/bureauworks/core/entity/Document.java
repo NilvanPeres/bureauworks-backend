@@ -2,6 +2,9 @@ package com.example.bureauworks.core.entity;
 
 import java.io.Serial;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import com.example.bureauworks.core.enums.LangCountryEnum;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,6 +16,8 @@ import lombok.*;
 @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 @Schema(name = "Document")
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+@SQLRestriction(value = "deleted = false")
+@SQLDelete(sql = "UPDATE Document SET deleted = true WHERE id = ?")
 public class Document extends BaseEntity <Integer> {
 
     @Serial
@@ -39,6 +44,7 @@ public class Document extends BaseEntity <Integer> {
 
     @ManyToOne
     @JoinColumn(name = "translator")
+    @Schema(description = "Translator of current document.")
     private Translator translator;
     
 }

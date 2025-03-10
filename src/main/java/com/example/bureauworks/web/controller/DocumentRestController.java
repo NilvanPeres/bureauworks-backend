@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.bureauworks.core.entity.Document;
 import com.example.bureauworks.core.service.DocumentService;
@@ -46,7 +47,15 @@ public class DocumentRestController extends BaseRestController {
         return writeResponseBody(service.findAll(pageRequest, author, subject));
     }
 
+    @PostMapping(value = "/file", consumes = {"multipart/form-data"})
+    @Operation(summary = "Save a batch of documents entity from a file. It can be a CSV or xlsx file")
+    public void insertBatch(@RequestParam(required = true) MultipartFile file) {
+        service.insertBatch(file);
+    }
+
+
     @PostMapping
+    @Operation(summary = "Save a new document")
     public ResponseEntity<Document> save(@RequestBody Document document) {
         return writeResponseBody(service.save(document));
     }
