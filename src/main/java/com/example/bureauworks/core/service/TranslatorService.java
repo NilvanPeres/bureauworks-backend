@@ -35,7 +35,7 @@ public class TranslatorService {
 
     public Translator findByEmail(String author) {
         return repository.findByEmail(author)
-                .orElseThrow(() -> new EntityNotFoundException("Translator not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Translator not found with current email: " + author + ". Please create a new translator with this email, and try again later."));
     }
 
     public Page<Translator> findAll(final Pageable pageable, final String name, final String email) {

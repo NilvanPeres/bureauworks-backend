@@ -20,7 +20,6 @@ public class ExceptionHandlerAdvice {
 		return new ResponseEntity<>(createError(HttpStatus.INTERNAL_SERVER_ERROR, ex), HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	
-
 	@ExceptionHandler(EntityNotFoundException.class)
 	public ResponseEntity<ExceptionResponse> entityNotFoundExceptionHandler(Exception ex) {		
 		return new ResponseEntity<>(createError(HttpStatus.NOT_FOUND, ex), HttpStatus.NOT_FOUND);

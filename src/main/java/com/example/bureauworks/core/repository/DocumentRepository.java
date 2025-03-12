@@ -12,9 +12,8 @@ public interface DocumentRepository extends JpaRepository<Document, Integer>  {
     @Query("""
           SELECT d
           FROM Document d
-          WHERE d.deleted = false
-            AND (:author IS NULL OR LOWER(d.author) LIKE LOWER(CONCAT('%', :author, '%'))) 
-            AND (:subject IS NULL OR LOWER (d.subject) LIKE LOWER(CONCAT('%', :subject, '%'))) 
+          WHERE (:author IS NULL OR LOWER(d.author) LIKE LOWER(CONCAT('%', :author, '%'))) 
+              AND (:subject IS NULL OR LOWER (d.subject) LIKE LOWER(CONCAT('%', :subject, '%'))) 
     """)
     Page<Document> findAll(Pageable pageable, String author, String subject);
     

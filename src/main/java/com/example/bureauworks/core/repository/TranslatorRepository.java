@@ -14,8 +14,7 @@ public interface TranslatorRepository extends JpaRepository<Translator, Integer>
     @Query("""
         SELECT t
         FROM Translator t
-        WHERE t.deleted = false
-                AND (:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%')))
+        WHERE (:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%')))
                 AND (:email IS NULL OR LOWER(t.email) LIKE LOWER(CONCAT('%', :email, '%'))) 
         """)
     Page<Translator> findAll(Pageable pageable, String name, String email);

@@ -6,17 +6,22 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import com.example.bureauworks.core.entity.Document;
 import com.example.bureauworks.core.enums.LangCountryEnum;
-import com.example.bureauworks.core.utils.EncodingDetectorUtil;
+import com.example.bureauworks.core.service.Client.OpenAiClientService;
+import com.example.bureauworks.web.exception.BureuWorksException;
 import com.example.bureauworks.web.model.DocumentCSVModel;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.HeaderColumnNameMappingStrategy;
+import com.opencsv.bean.MappingStrategy;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+import java.lang.reflect.Field;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -28,48 +33,106 @@ import static com.example.bureauworks.core.utils.EncodingDetectorUtil.detectEnco
 @RequiredArgsConstructor
 @Log4j2
 public class DocumentCSVLoaderService {
-    
-    private final TranslatorService translatorService;
 
-    @SneakyThrows
-    public List<Document> loadFromCSV(InputStream file) {
-        log.info("Loading documents from CSV file");
+    private final OpenAiClientService openAiClientService;
+    
+@SneakyThrows
+public List<Document> loadFromCSV(InputStream file) {
+    log.info("Loading documents from CSV file");
+    
+    byte[] fileContent = file.readAllBytes();
+    
+    // Detectar encoding usando o array de bytes
+    String encoding;
+    try (InputStream encodingStream = new ByteArrayInputStream(fileContent)) {
+        encoding = detectEncoding(encodingStream);
+    }
+    log.info("Encoding detected: {}", encoding);
+    
+    // Criar novo stream a partir do array de bytes para ler o CSV
+    try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(new ByteArrayInputStream(fileContent), encoding))) {
         
-        byte[] fileContent = file.readAllBytes();
+        // Configuração personalizada para capturar erros de validação
+        MappingStrategy<DocumentCSVModel> mappingStrategy = new HeaderColumnNameMappingStrategy<>();
+        mappingStrategy.setType(DocumentCSVModel.class);
         
-        // Detectar encoding usando o array de bytes
-        String encoding;
-        try (InputStream encodingStream = new ByteArrayInputStream(fileContent)) {
-            encoding = EncodingDetectorUtil.detectEncoding(encodingStream);
-        }
-        log.info("Encoding detected: {}", encoding);
+        // Configuração do OpenCSV com nossa estratégia personalizada
+        CsvToBean<DocumentCSVModel> csvToBean = new CsvToBeanBuilder<DocumentCSVModel>(reader)
+                .withMappingStrategy(mappingStrategy)
+                .withIgnoreLeadingWhiteSpace(true)
+                .withIgnoreEmptyLine(true)
+                .withSeparator(';')
+                .withQuoteChar('"')
+                .withEscapeChar('\\')
+                .withMultilineLimit(-1)
+                .build();
         
-        // Criar novo stream a partir do array de bytes para ler o CSV
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new ByteArrayInputStream(fileContent), encoding))) {
-            
-            // Configuração do OpenCSV para mapear o CSV para DocumentCSVModel
-            CsvToBean<DocumentCSVModel> csvToBean = new CsvToBeanBuilder<DocumentCSVModel>(reader)
-                    .withType(DocumentCSVModel.class)
-                    .withIgnoreLeadingWhiteSpace(true)
-                    .withIgnoreEmptyLine(true)
-                    .withSeparator(';') // Define ponto e vírgula como separador conforme especificado no Sample Document
-                    .withQuoteChar('"')       // Define o caractere de citação
-                    .withEscapeChar('\\')     // Define o caractere de escape
-                    .withMultilineLimit(-1)   // Multinha
-                    .build();
-            
-            // Realiza a leitura e transformação do CSV para lista de DocumentCSVModel
+        try {
+            // Tentar processar o CSV
             List<DocumentCSVModel> csvModels = csvToBean.parse();
             log.info("Found {} documents in CSV file", csvModels.size());
             
             // Converte a lista de DocumentCSVModel para lista de Document
             return convertToDocumentList(csvModels);
+        } catch (BureuWorksException e) {
+            // Capturar erros do OpenCSV
+            if (e.getCause() instanceof CsvRequiredFieldEmptyException) {
+                CsvRequiredFieldEmptyException fieldException = (CsvRequiredFieldEmptyException) e.getCause();
+                
+                // Obter informações sobre o erro
+                long lineNumber = fieldException.getLineNumber();
+                String[] missingFields = fieldException.getDestinationFields().stream()
+                        .map(Field::getName)  // Usando Field::getName em vez de fieldException::getName
+                        .toArray(String[]::new);
+                
+                // Obter a linha com problema
+                String problematicLine = getLineFromFile(fileContent, encoding, lineNumber);
+                
+                // Montar uma mensagem de erro mais descritiva
+                String errorMsg = String.format(
+                        "Erro na linha %d: campos obrigatórios ausentes: %s. Conteúdo da linha: [%s]",
+                        lineNumber,
+                        String.join(", ", missingFields),
+                        problematicLine
+                );
+                
+                log.error(errorMsg);
+                throw new BureuWorksException(errorMsg);
+            } else {
+                log.error("Error loading documents from CSV file", e);
+                throw new RuntimeException("Failed to load documents from CSV: " + e.getMessage(), e);
+            }
+        }
+    } catch (Exception e) {
+        log.error("Error loading documents from CSV file", e);
+        throw new RuntimeException("Failed to load documents from CSV: " + e.getMessage(), e);
+    }
+}
+
+    /**
+     * Método auxiliar para obter a linha específica do arquivo
+     */
+    private String getLineFromFile(byte[] fileContent, String encoding, long lineNumber) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(fileContent), encoding))) {
+            
+            String line;
+            long currentLine = 1;
+            
+            while ((line = reader.readLine()) != null) {
+                if (currentLine == lineNumber) {
+                    return line;
+                }
+                currentLine++;
+            }
+            
+            return "Linha não encontrada";
         } catch (Exception e) {
-            log.error("Error loading documents from CSV file", e);
-            throw new RuntimeException("Failed to load documents from CSV: " + e.getMessage(), e);
+            return "Não foi possível obter o conteúdo da linha";
         }
     }
+
     
     /**
      * Converte uma lista de DocumentCSVModel para lista de Document
@@ -95,17 +158,17 @@ public class DocumentCSVLoaderService {
                 .subject(csvModel.getSubject())
                 .content(csvModel.getContent())
                 .author(csvModel.getAuthor())
-                .locale(parseLocale(csvModel.getLocale()))
+                .locale(parseLocale(csvModel.getLocale(), csvModel.getSubject()))
                 .build();
     }
     
     /**
      * Converte a string de locale para o enum LangCountryEnum
      */
-    private LangCountryEnum parseLocale(String localeStr) {
+    private LangCountryEnum parseLocale(String localeStr, String subject) {
         if (StringUtils.isEmpty(localeStr)) {
-            // TODO: Chamar API OPENAI para detectar o idioma do texto
-            return null;
+            String localeFromOpenAi = openAiClientService.generateChatCompletion(subject);
+            return LangCountryEnum.valueOf(localeFromOpenAi);
         }
 
         String normalizedLocale = localeStr.replace("-", "_").toUpperCase();
