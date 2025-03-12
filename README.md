@@ -15,6 +15,8 @@ docker run -d --name postgresql --restart always -e POSTGRES_PASSWORD=123456 -p 
 ```
 OBS: Caso já tenha um docker com imagem do banco, basta usar a senha local dentro do arquivo application.properties no campo esperado
 
+OBS2: Execute o arquivo no 'script.sql' no banco postgresql
+
 2. Clone o projeto 
 
 ```bash
