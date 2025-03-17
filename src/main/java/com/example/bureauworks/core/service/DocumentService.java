@@ -14,8 +14,11 @@ import com.example.bureauworks.core.entity.Translator;
 import com.example.bureauworks.core.exception.ExceptionUtil;
 import com.example.bureauworks.core.repository.DocumentRepository;
 import com.example.bureauworks.web.exception.BureuWorksException;
+import com.example.bureauworks.web.model.DocumentPageable;
 
 import lombok.RequiredArgsConstructor;
+
+import static com.example.bureauworks.core.utils.IsFileExtensionValid.isFileExtensionValid;
 
 @Service
 @RequiredArgsConstructor
@@ -34,8 +37,9 @@ public class DocumentService {
         return repository.findById(id).orElse(null);
     }
 
-    public Page<Document> findAll(final Pageable pageable, final String author, final String subject) {
-        return repository.findAll(pageable, author, subject);
+    public Page<DocumentPageable> findAll(final Pageable pageable, final String author, final String subject) {
+        return repository.findAll(pageable, author, subject)
+                .map(DocumentPageable::new);
     }
 
     public Document save(final Document document) {
@@ -78,8 +82,10 @@ public class DocumentService {
     }
 
     public void insertBatch(MultipartFile file) {
+        if (!isFileExtensionValid(file.getOriginalFilename())) 
+            throw new BureuWorksException("Invalid file extension. Only CSV files are allowed.");
+        
         try {
-
             final List<Document> documents = documentCSVLoader.loadFromCSV(file.getInputStream());
 
             documents.stream()

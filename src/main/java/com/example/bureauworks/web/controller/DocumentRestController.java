@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.bureauworks.core.entity.Document;
 import com.example.bureauworks.core.service.DocumentService;
+import com.example.bureauworks.web.model.DocumentPageable;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,7 +37,7 @@ public class DocumentRestController extends BaseRestController {
         @ApiResponse(responseCode = "204", description = "Sucessufully searcher for people, but no results were found."),
     })
     @GetMapping
-    public ResponseEntity<Page<Document>> findAll(
+    public ResponseEntity<Page<DocumentPageable>> findAll(
                 @RequestParam(required = false, defaultValue = "") final String author,
                 @RequestParam(required = false, defaultValue = "") final String subject,
                 @RequestParam(defaultValue = "0") final Integer page,
@@ -52,7 +53,6 @@ public class DocumentRestController extends BaseRestController {
     public void insertBatch(@RequestParam(required = true) MultipartFile file) {
         service.insertBatch(file);
     }
-
 
     @PostMapping
     @Operation(summary = "Save a new document")

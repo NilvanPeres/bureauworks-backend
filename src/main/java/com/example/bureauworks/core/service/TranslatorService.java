@@ -8,6 +8,7 @@ import com.example.bureauworks.core.entity.Translator;
 import com.example.bureauworks.core.exception.EntityNotFoundException;
 import com.example.bureauworks.core.exception.ExceptionUtil;
 import com.example.bureauworks.core.repository.TranslatorRepository;
+import com.example.bureauworks.web.exception.BureuWorksException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,12 +45,14 @@ public class TranslatorService {
 
     public Translator save(Translator translator) {
         validateRequiredFields(translator);
+        isRegistryDuplicate(translator.getEmail(), null);
         return repository.save(translator);
     }
 
     public Translator update(Integer translatorId, Translator translator) {
         Translator translatorDD = findById(translatorId);
         validateRequiredFields(translator);
+        isRegistryDuplicate(translator.getEmail(), translatorId);
 
         Translator updatedTranslator = Translator.builder()
             .id(translatorDD.getId())
@@ -75,5 +78,10 @@ public class TranslatorService {
         if (!isValidEmail(translator.getEmail())) {
             ExceptionUtil.exception("Invalid email");
         }
-    }    
+    } 
+    
+    private void isRegistryDuplicate(final String translatorEmail, final Integer id) {
+        if (repository.isEmailAlreadyInUse(translatorEmail, id)) 
+            throw new BureuWorksException("This email: " + translatorEmail + "is already in use");
+    }
 }

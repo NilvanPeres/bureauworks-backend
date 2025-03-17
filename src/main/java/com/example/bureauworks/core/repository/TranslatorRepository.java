@@ -24,5 +24,15 @@ public interface TranslatorRepository extends JpaRepository<Translator, Integer>
 
     @Query("SELECT t FROM Translator t where (:email IS NULL OR LOWER(t.email) LIKE LOWER(CONCAT('%', :email, '%')))")
     Optional<Translator> findByEmail(String email);
+
+    @Query("""
+        select exists (
+            select 1
+            from Translator t
+            where LOWER(t.email) LIKE LOWER(CONCAT('%', :email, '%'))
+                and (:id is null OR t.id <> id)
+        )     
+    """)
+    boolean isEmailAlreadyInUse(String email, Integer id);
     
 }
